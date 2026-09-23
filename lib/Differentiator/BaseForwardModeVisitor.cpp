@@ -789,8 +789,12 @@ StmtDiff BaseForwardModeVisitor::VisitReturnStmt(const ReturnStmt* RS) {
     return nullptr;
 
   StmtDiff retValDiff = Visit(RS->getRetValue());
+  Expr* dx = retValDiff.getExpr_dx();
+  if (!dx)
+    dx = getZeroInit(RS->getRetValue()->getType());
+
   Stmt* returnStmt =
-      m_Sema.ActOnReturnStmt(noLoc, retValDiff.getExpr_dx(), getCurrentScope())
+      m_Sema.ActOnReturnStmt(noLoc, dx, getCurrentScope())
           .get();
   return StmtDiff(returnStmt);
 }
