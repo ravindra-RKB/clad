@@ -40,6 +40,12 @@ namespace clad {
     // containing 1 statement.
     clang::Stmt* unwrapIfSingleStmt(clang::Stmt* S);
 
+    /// Checks if the type QT or any of its nested fields is a reference.
+    /// If so, emits an error diagnostic naming the reference member.
+    bool CheckReferenceDataMembers(clang::Sema& S, clang::QualType QT,
+                                   clang::SourceLocation Loc,
+                                   const clang::ValueDecl* Var = nullptr);
+
     /// Creates and returns a compound statement having statements as follows:
     /// {`S`, all the statement of `initial` in sequence}
     clang::CompoundStmt* PrependAndCreateCompoundStmt(clang::ASTContext& C,

@@ -1752,6 +1752,9 @@ BaseForwardModeVisitor::DifferentiateVarDecl(const clang::VarDecl* VD) {
 DeclDiff<VarDecl>
 BaseForwardModeVisitor::DifferentiateVarDecl(const clang::VarDecl* VD,
                                              bool ignoreInit) {
+  if (utils::CheckReferenceDataMembers(m_Sema, VD->getType(), VD->getBeginLoc(), VD))
+    return DeclDiff<VarDecl>();
+
   StmtDiff initDiff{};
   const Expr* init = VD->getInit();
   if (init) {

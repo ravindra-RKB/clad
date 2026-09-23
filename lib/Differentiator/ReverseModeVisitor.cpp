@@ -3783,6 +3783,9 @@ Expr* ReverseModeVisitor::getStdInitListSizeExpr(const Expr* E) {
 
   DeclDiff<VarDecl> ReverseModeVisitor::DifferentiateVarDecl(const VarDecl* VD,
                                                              bool keepLocal) {
+    if (utils::CheckReferenceDataMembers(m_Sema, VD->getType(), VD->getBeginLoc(), VD))
+      return DeclDiff<VarDecl>();
+
     // Local declarations are promoted to the function global scope. This
     // procedure is done to make declarations visible in the reverse sweep.
     // The reverse_mode_forward_pass mode does not have a reverse pass so

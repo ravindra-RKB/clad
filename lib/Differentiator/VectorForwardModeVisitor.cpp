@@ -374,6 +374,9 @@ StmtDiff VectorForwardModeVisitor::VisitReturnStmt(const ReturnStmt* RS) {
 
 DeclDiff<VarDecl>
 VectorForwardModeVisitor::DifferentiateVarDecl(const VarDecl* VD) {
+  if (utils::CheckReferenceDataMembers(m_Sema, VD->getType(), VD->getBeginLoc(), VD))
+    return DeclDiff<VarDecl>();
+
   StmtDiff initDiff = VD->getInit() ? Visit(VD->getInit()) : StmtDiff{};
   // Here we are assuming that derived type and the original type are same.
   // This may not necessarily be true in the future.

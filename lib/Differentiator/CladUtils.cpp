@@ -1375,6 +1375,43 @@ namespace clad {
       return false;
     }
 
+    bool CheckReferenceDataMembers(Sema& S, QualType QT, SourceLocation Loc,
+                                   const clang::ValueDecl* Var = nullptr) {
+      QT = QT.getNonReferenceType();
+      while (const auto* AT = S.getASTContext().getAsArrayType(QT))
+        QT = AT->getElementType();
+
+      if (const CXXRecordDecl* RD = QT->getAsCXXRecordDecl()) {
+        if (!RD->hasDefinition() || RD->isLambda())
+          return false;
+
+        for (const FieldDecl* FD : RD->fields()) {
+          QualType FT = FD->getType();
+          if (FT->isReferenceType()) {
+            if (Var) {
+              S.Diag(Loc, S.getASTContext().getDiagnostics().getCustomDiagID(
+                              DiagnosticsEngine::Error,
+                              "parameter or variable '%0' has unsupported reference data member"))
+                  << Var->getNameAsString();
+            } else {
+              S.Diag(Loc, S.getASTContext().getDiagnostics().getCustomDiagID(
+                              DiagnosticsEngine::Error,
+                              "return type '%0' with reference data member is not supported"))
+                  << QT.getAsString();
+            }
+            S.Diag(FD->getLocation(), S.getASTContext().getDiagnostics().getCustomDiagID(
+                             DiagnosticsEngine::Note,
+                             "reference member '%0' declared here"))
+                << FD->getNameAsString();
+            return true;
+          }
+          if (CheckReferenceDataMembers(S, FT, Loc, Var))
+            return true;
+        }
+      }
+      return false;
+    }
+
     bool exprDependsOnVarDecl(const clang::Expr* E, const VarDecl* VD) {
       class DREFinder : public RecursiveASTVisitor<DREFinder> {
       public:
@@ -1467,6 +1504,15 @@ namespace clad {
                       bool forCustomDerv, bool shouldUseRestoreTracker,
                       bool isForErrorEstimation) {
       ASTContext& C = S.getASTContext();
+
+      if (CheckReferenceDataMembers(S, FD->getReturnType(), FD->getBeginLoc(), nullptr))
+        return QualType();
+
+      for (unsigned i = 0; i < FD->getNumParams(); ++i) {
+        if (CheckReferenceDataMembers(S, FD->getParamDecl(i)->getType(), FD->getBeginLoc(), FD->getParamDecl(i)))
+          return QualType();
+      }
+
       if (mode == DiffMode::forward)
         return FD->getType();
 
@@ -1479,6 +1525,7 @@ namespace clad {
       FunctionProtoType::ExtProtoInfo EPI = FnProtoTy->getExtProtoInfo();
       llvm::SmallVector<QualType, 16> FnTypes;
       FnTypes.reserve(2 * FnProtoTy->getNumParams() + 1);
+      
       for (QualType T : FnProtoTy->getParamTypes()) {
         // FIXME: We handle parameters with default values by setting them
         // explicitly. However, some of them have private types and cannot be

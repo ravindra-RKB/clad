@@ -332,6 +332,9 @@ ReverseModeForwPassVisitor::VisitReturnStmt(const clang::ReturnStmt* RS) {
 DeclDiff<clang::VarDecl>
 ReverseModeForwPassVisitor::DifferentiateVarDecl(const clang::VarDecl* VD,
                                                  bool /*keepLocal*/) {
+  if (utils::CheckReferenceDataMembers(m_Sema, VD->getType(), VD->getBeginLoc(), VD))
+    return DeclDiff<VarDecl>();
+
   QualType DerivedType = CloneType(VD->getType());
   StmtDiff initDiff;
   if (const Expr* init = VD->getInit())
