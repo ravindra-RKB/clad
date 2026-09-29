@@ -10,18 +10,11 @@ namespace {
 // A mock external source to verify that methods are forwarded correctly.
 class MockExternalRMVSource : public ExternalRMVSource {
 public:
-  int InitialiseRMVCount = 0;
   int ForgetRMVCount = 0;
   int ActOnStartOfDeriveCount = 0;
   int ActBeforeCreatingDerivedFnParamTypesCount = 0;
   int ExtraParamsAdded = 0;
   int ActAfterCreatingDerivedFnParamsCount = 0;
-
-  // We can't actually pass a real ReverseModeVisitor easily in a unit test,
-  // but since we only check the multiplexing logic, we can cast a dummy pointer.
-  void InitialiseRMV(ReverseModeVisitor& RMV) override {
-    InitialiseRMVCount++;
-  }
 
   void ForgetRMV() override {
     ForgetRMVCount++;
@@ -57,13 +50,6 @@ TEST(MultiplexExternalRMVSourceTest, ForwardsCallsToMultipleSources) {
   Multiplexer.AddSource(Source2);
 
   // Test forwarding of simple methods.
-  // We use a fake pointer for RMV since it's just forwarded by reference.
-  ReverseModeVisitor* fakeRMV = reinterpret_cast<ReverseModeVisitor*>(0x1234);
-  Multiplexer.InitialiseRMV(*fakeRMV);
-  
-  EXPECT_EQ(Source1.InitialiseRMVCount, 1);
-  EXPECT_EQ(Source2.InitialiseRMVCount, 1);
-
   Multiplexer.ForgetRMV();
   EXPECT_EQ(Source1.ForgetRMVCount, 1);
   EXPECT_EQ(Source2.ForgetRMVCount, 1);
